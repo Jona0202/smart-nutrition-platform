@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Debug LocalStorage</title>
+</head>
+
+<body>
+    <h1>Debug Meals Data</h1>
+    <button onclick="showMeals()">Ver Comidas</button>
+    <button onclick="fixMeals()">Migrar Fechas</button>
+    <button onclick="clearData()">Borrar Todo</button>
+    <pre id="output"></pre>
+
+    <script>
+        function showMeals() {
+            const stored = localStorage.getItem('nutrition-meals-storage');
+            const meals = JSON.parse(stored || '[]');
+
+            const output = document.getElementById('output');
+            output.textContent = 'Total comidas: ' + meals.length + '\n\n';
+
+            meals.forEach((meal, i) => {
+                output.textContent += `Comida ${i + 1}:\n`;
+                output.textContent += `  Nombre: ${meal.foodName}\n`;
+                output.textContent += `  Timestamp: ${meal.timestamp}\n`;
+                output.textContent += `  Date: ${meal.date || 'NO TIENE DATE!'}\n`;
+                output.textContent += `  Calorías: ${meal.calories}\n\n`;
+            });
+        }
+
+        function fixMeals() {
+            const stored = localStorage.getItem('nutrition-meals-storage');
+            const meals = JSON.parse(stored || '[]');
+
+            const fixed = meals.map(meal => {
+                if (!meal.date && meal.timestamp) {
+                    return {
+                        ...meal,
+                        date: meal.timestamp.split('T')[0]
+                    };
+                }
+                return meal;
+            });
+
+            localStorage.setItem('nutrition-meals-storage', JSON.stringify(fixed));
+            alert('¡Comidas migradas! Recarga la página.');
+            showMeals();
+        }
+
+        function clearData() {
+            if (confirm('¿Seguro que quieres borrar todas las comidas?')) {
+                localStorage.clear();
+                alert('Datos borrados');
+                showMeals();
+            }
+        }
+    </script>
+</body>
+
+</html>
