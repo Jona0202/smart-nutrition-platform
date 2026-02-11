@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://192.168.18.6:8000'; // Hardcoded for mobile testing
+// const API_BASE_URL = 'http://10.0.2.2:8000/api/v1'; // Android Emulator
+const API_BASE_URL = 'https://smart-nutrition-platform.onrender.com/api/v1'; // Production Render
+// const API_BASE_URL = 'http://localhost:8000/api/v1'; // Browser Localhost
 
 // Create axios instance
 const api = axios.create({
