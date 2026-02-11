@@ -52,7 +52,12 @@ app.include_router(food_analysis_router)
 
 @app.get("/")
 async def root():
-    """Root endpoint - API health check."""
+    """Root endpoint - serves frontend if available, otherwise API info."""
+    index_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "static", "index.html"
+    )
+    if os.path.exists(index_path):
+        return FileResponse(index_path, media_type="text/html")
     return {
         "name": settings.APP_NAME,
         "version": settings.APP_VERSION,
