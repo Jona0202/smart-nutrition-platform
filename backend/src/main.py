@@ -4,9 +4,12 @@ FastAPI Main Application
 Entry point for the Smart Nutrition Platform API.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import uvicorn
+import os
 
 from src.infrastructure.config.settings import settings
 from src.domain.services.metabolic_calculator import MetabolicCalculator
@@ -215,6 +218,36 @@ async def calculate_full_profile_demo(request: CreateProfileRequest):
         },
         calculation_method=metabolic_profile.calculation_method,
     )
+
+
+# ─── Serve Frontend Static Files (Live Updates) ───
+STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+
+if os.path.exists(STATIC_DIR):
+    # Serve static assets (JS, CSS, images)
+    app.mount("/assets", StaticFiles(directory=os.path.join(STATIC_DIR, "assets")), name="assets")
+
+    # Serve other static files (manifest, sw, icons)
+    @app.get("/manifest.webmanifest")
+    @app.get("/sw.js")
+    @app.get("/workbox-{rest_of_path:path}")
+    @app.get("/registerSW.js")
+    async def serve_pwa_files(request: Request):
+        file_path = os.path.join(STATIC_DIR, request.url.path.lstrip("/"))
+        if os.path.exists(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+    # SPA fallback: any non-API route serves index.html
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Don't intercept API routes or docs
+        if full_path.startswith(("api/", "docs", "redoc", "openapi", "demo/", "health")):
+            return None
+        file_path = os.path.join(STATIC_DIR, full_path)
+        if os.path.exists(file_path) and not os.path.isdir(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
 
 if __name__ == "__main__":

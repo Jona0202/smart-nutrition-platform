@@ -2,11 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { foodDatabase, categories, FoodItem } from '../data/foods';
 import { useMealStore, LoggedMeal } from '../store/mealStore';
+import { useFavoritesStore } from '../store/favoritesStore';
 import BottomNav from '../components/BottomNav';
 
 export default function FoodLoggingScreen() {
     const navigate = useNavigate();
     const { addMeal, removeMeal, getMealsForToday, getTodayTotals } = useMealStore();
+    const { favorites, addFavorite, removeFavorite, isFavorite, incrementUsage } = useFavoritesStore();
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('all');
@@ -77,8 +80,39 @@ export default function FoodLoggingScreen() {
         };
 
         addMeal(meal);
+        // Increment favorite usage if it's a favorite
+        if (isFavorite(selectedFood.id)) {
+            incrementUsage(selectedFood.id);
+        }
         setSelectedFood(null);
         setSearchQuery('');
+    };
+
+    const handleDeleteMeal = (mealId: string) => {
+        setDeletingId(mealId);
+        setTimeout(() => {
+            removeMeal(mealId);
+            setDeletingId(null);
+        }, 300);
+    };
+
+    const toggleFavorite = (food: FoodItem) => {
+        if (isFavorite(food.id)) {
+            removeFavorite(food.id);
+        } else {
+            addFavorite({
+                foodId: food.id,
+                foodName: food.name,
+                emoji: food.emoji,
+                caloriesPer100g: food.caloriesPer100g,
+                proteinPer100g: food.proteinPer100g,
+                carbsPer100g: food.carbsPer100g,
+                fatPer100g: food.fatPer100g,
+                defaultGrams: food.servingSizes[0]?.grams || 100,
+                defaultMealType: 'lunch',
+                timesUsed: 0,
+            });
+        }
     };
 
     const getMealTypeLabel = (type: string) => {
@@ -285,6 +319,47 @@ export default function FoodLoggingScreen() {
                     </button>
                 </div>
 
+                {/* Favorites Quick-Add */}
+                {favorites.length > 0 && !searchQuery && (
+                    <div className="mb-4">
+                        <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: 'var(--color-text-primary, #1e293b)' }}>
+                            ⭐ Favoritos
+                        </h3>
+                        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
+                            {favorites.slice(0, 6).map((fav) => (
+                                <button
+                                    key={fav.foodId}
+                                    onClick={() => {
+                                        const food = foodDatabase.find(f => f.id === fav.foodId);
+                                        if (food) handleSelectFood(food);
+                                    }}
+                                    style={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        padding: '10px 14px',
+                                        borderRadius: 14,
+                                        border: '1px solid var(--color-border, #e2e8f0)',
+                                        background: 'var(--color-surface, #fff)',
+                                        cursor: 'pointer',
+                                        minWidth: 80,
+                                        flexShrink: 0,
+                                        transition: 'all 0.2s ease',
+                                    }}
+                                >
+                                    <span style={{ fontSize: 24, marginBottom: 4 }}>{fav.emoji}</span>
+                                    <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--color-text-primary, #1e293b)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 70 }}>
+                                        {fav.foodName}
+                                    </span>
+                                    <span style={{ fontSize: 10, color: 'var(--color-text-tertiary, #94a3b8)' }}>
+                                        {fav.caloriesPer100g} cal
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Search */}
                 <div className="mb-4">
                     <input
@@ -330,21 +405,48 @@ export default function FoodLoggingScreen() {
                                         </div>
                                         <div className="space-y-2">
                                             {meals.map((meal) => (
-                                                <div key={meal.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
-                                                    <div className="flex items-center gap-2 flex-1">
-                                                        <span className="text-2xl">{meal.emoji}</span>
-                                                        <div className="flex-1">
-                                                            <div className="font-medium text-sm">{meal.foodName}</div>
-                                                            <div className="text-xs text-gray-600">
-                                                                {meal.grams}g • {meal.calories} cal
+                                                <div
+                                                    key={meal.id}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        padding: '10px 12px',
+                                                        background: 'var(--color-surface-accent, #f8fafc)',
+                                                        borderRadius: 12,
+                                                        transition: 'all 0.3s ease',
+                                                        opacity: deletingId === meal.id ? 0 : 1,
+                                                        transform: deletingId === meal.id ? 'translateX(100%)' : 'none',
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                                                        <span style={{ fontSize: 24 }}>{meal.emoji}</span>
+                                                        <div style={{ flex: 1 }}>
+                                                            <div style={{ fontWeight: 600, fontSize: 13 }}>{meal.foodName}</div>
+                                                            <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                                                                {meal.grams}g · {Math.round(meal.calories)} cal · P:{Math.round(meal.protein)}g
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <button
-                                                        onClick={() => removeMeal(meal.id)}
-                                                        className="text-red-500 px-2"
+                                                        onClick={() => handleDeleteMeal(meal.id)}
+                                                        style={{
+                                                            width: 36,
+                                                            height: 36,
+                                                            borderRadius: 10,
+                                                            border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                            background: 'rgba(239, 68, 68, 0.08)',
+                                                            color: '#ef4444',
+                                                            fontSize: 16,
+                                                            cursor: 'pointer',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            transition: 'all 0.2s ease',
+                                                            flexShrink: 0,
+                                                        }}
                                                     >
-                                                        ✕
+                                                        🗑️
                                                     </button>
                                                 </div>
                                             ))}
@@ -383,6 +485,22 @@ export default function FoodLoggingScreen() {
                                                 P: {food.proteinPer100g}g C: {food.carbsPer100g}g F: {food.fatPer100g}g
                                             </div>
                                         </div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleFavorite(food);
+                                            }}
+                                            style={{
+                                                fontSize: 18,
+                                                padding: '4px 6px',
+                                                background: 'transparent',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                transition: 'transform 0.2s ease',
+                                            }}
+                                        >
+                                            {isFavorite(food.id) ? '❤️' : '🩶'}
+                                        </button>
                                         <div className="text-gray-400">→</div>
                                     </div>
                                 </button>

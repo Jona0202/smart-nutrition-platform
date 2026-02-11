@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { useMealStore } from '../store/mealStore';
@@ -121,6 +122,208 @@ function StreakCard() {
                 letterSpacing: '-0.02em',
             }}>
                 {streak}
+            </div>
+        </div>
+    );
+}
+
+// ─── Recent Meals with Delete ───
+function RecentMealsCard() {
+    const { getMealsForToday, removeMeal } = useMealStore();
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+    const todayMeals = getMealsForToday();
+    const recentMeals = todayMeals.slice(-4).reverse();
+
+    const handleDelete = (id: string) => {
+        setDeletingId(id);
+        setTimeout(() => {
+            removeMeal(id);
+            setDeletingId(null);
+        }, 300);
+    };
+
+    if (recentMeals.length === 0) return null;
+
+    return (
+        <div className="card animate-fadeInUp" style={{ marginBottom: 16 }}>
+            <h3 className="section-title" style={{ marginBottom: 12 }}>Últimas comidas</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {recentMeals.map((meal) => (
+                    <div
+                        key={meal.id}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '10px 12px',
+                            background: 'var(--color-surface-accent)',
+                            borderRadius: 12,
+                            transition: 'all 0.3s ease',
+                            opacity: deletingId === meal.id ? 0 : 1,
+                            transform: deletingId === meal.id ? 'translateX(100%)' : 'none',
+                        }}
+                    >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
+                            <span style={{ fontSize: 22 }}>{meal.emoji}</span>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--color-text-primary)' }}>{meal.foodName}</div>
+                                <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+                                    {meal.grams}g · {Math.round(meal.calories)} cal · P:{Math.round(meal.protein)}g
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => handleDelete(meal.id)}
+                            style={{
+                                width: 32,
+                                height: 32,
+                                borderRadius: 8,
+                                border: '1px solid rgba(239,68,68,0.15)',
+                                background: 'rgba(239,68,68,0.06)',
+                                color: '#ef4444',
+                                fontSize: 14,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                            }}
+                        >
+                            🗑️
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ─── Weekly Summary Card ───
+function WeeklySummaryCard() {
+    const { meals } = useMealStore();
+
+    // Get meals from last 7 days
+    const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const cutoff = `${sevenDaysAgo.getFullYear()}-${String(sevenDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(sevenDaysAgo.getDate()).padStart(2, '0')}`;
+
+    const weekMeals = meals.filter(m => m.date >= cutoff);
+    const daysWithMeals = new Set(weekMeals.map(m => m.date)).size;
+
+    if (daysWithMeals < 2) return null;
+
+    const totalCals = weekMeals.reduce((s, m) => s + m.calories, 0);
+    const totalProt = weekMeals.reduce((s, m) => s + m.protein, 0);
+    const avgCals = Math.round(totalCals / daysWithMeals);
+    const avgProt = Math.round(totalProt / daysWithMeals);
+
+    return (
+        <div className="card animate-fadeInUp" style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <h3 className="section-title">Resumen semanal</h3>
+                <span className="badge badge-info" style={{ fontSize: 10 }}>📊 {daysWithMeals} días</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{
+                    flex: 1,
+                    padding: '14px 12px',
+                    background: 'var(--color-surface-accent)',
+                    borderRadius: 12,
+                    textAlign: 'center',
+                }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Poppins', sans-serif", color: 'var(--color-text-primary)', letterSpacing: '-0.02em' }}>
+                        {avgCals}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>
+                        cal/día prom.
+                    </div>
+                </div>
+                <div style={{
+                    flex: 1,
+                    padding: '14px 12px',
+                    background: 'var(--color-surface-accent)',
+                    borderRadius: 12,
+                    textAlign: 'center',
+                }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Poppins', sans-serif", color: '#ef4444', letterSpacing: '-0.02em' }}>
+                        {avgProt}g
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>
+                        prot/día prom.
+                    </div>
+                </div>
+                <div style={{
+                    flex: 1,
+                    padding: '14px 12px',
+                    background: 'var(--color-surface-accent)',
+                    borderRadius: 12,
+                    textAlign: 'center',
+                }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'Poppins', sans-serif", color: '#22c55e', letterSpacing: '-0.02em' }}>
+                        {weekMeals.length}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>
+                        comidas reg.
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Daily Nutrition Tips ───
+function DailyTipCard() {
+    const tips = [
+        { emoji: '💡', title: 'Proteína en cada comida', text: 'Incluir proteína en cada comida ayuda a mantener la masa muscular y da mayor saciedad.' },
+        { emoji: '🥤', title: 'Hidratación', text: 'Beber agua antes de cada comida puede ayudarte a comer porciones adecuadas.' },
+        { emoji: '🥗', title: 'La regla del plato', text: '1/2 verduras, 1/4 proteína, 1/4 carbohidratos. Así se arma un plato balanceado.' },
+        { emoji: '🕐', title: 'Horarios regulares', text: 'Comer a horas fijas ayuda a tu metabolismo a funcionar de manera óptima.' },
+        { emoji: '🍌', title: 'Snacks inteligentes', text: 'Prefiere una fruta con proteína (plátano + maní) en vez de snacks procesados.' },
+        { emoji: '🌙', title: 'Cena ligera', text: 'Cenar al menos 2 horas antes de dormir mejora la digestión y el descanso.' },
+        { emoji: '🥚', title: 'No temas al huevo', text: 'El huevo es una fuente completa de proteína. 2-3 al día es saludable para la mayoría.' },
+        { emoji: '🏃', title: 'Post-entreno', text: 'Después de ejercitar, come proteína + carbos en los primeros 30-60 min para mejor recuperación.' },
+        { emoji: '🥑', title: 'Grasas saludables', text: 'Palta, aceite de oliva y frutos secos son grasas buenas que tu cuerpo necesita.' },
+        { emoji: '📏', title: 'Porciones con la mano', text: 'Tu puño = 1 porción de carbos. Tu palma = 1 porción de proteína. Tu pulgar = 1 porción de grasa.' },
+        { emoji: '🫘', title: 'Menestras peruanas', text: 'Lentejas, frejoles y pallares son proteínas vegetales económicas y nutritivas.' },
+        { emoji: '🐟', title: 'Pescado 2x/semana', text: 'Comer pescado 2 veces por semana aporta omega-3 esencial para el cerebro y corazón.' },
+        { emoji: '🍊', title: 'Vitamina C + Hierro', text: 'Toma jugo de naranja con comidas ricas en hierro (menestras, carne) para mejor absorción.' },
+        { emoji: '⏸️', title: 'Come despacio', text: 'Masticar bien y comer en 20+ min le da tiempo a tu cerebro de sentir la saciedad.' },
+    ];
+
+    // Select tip based on day of year for consistency
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    const tip = tips[dayOfYear % tips.length];
+
+    return (
+        <div className="card animate-fadeInUp" style={{
+            marginBottom: 16,
+            padding: '16px 18px',
+            background: 'linear-gradient(135deg, rgba(59,130,246,0.06), rgba(139,92,246,0.06))',
+            border: '1px solid rgba(59,130,246,0.1)',
+        }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 12,
+                    background: 'rgba(59,130,246,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 20,
+                    flexShrink: 0,
+                }}>
+                    {tip.emoji}
+                </div>
+                <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: 4 }}>
+                        {tip.title}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+                        {tip.text}
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -442,6 +645,9 @@ export default function DashboardScreen() {
                     <div style={{ fontSize: 18, opacity: 0.4 }}>›</div>
                 </div>
 
+                {/* ─── Recent Meals with Delete ─── */}
+                <RecentMealsCard />
+
                 {/* ─── Water Tracker ─── */}
                 <div style={{ marginBottom: 16 }}>
                     <WaterTracker />
@@ -452,6 +658,12 @@ export default function DashboardScreen() {
 
                 {/* ─── Daily Streak ─── */}
                 <StreakCard />
+
+                {/* ─── Daily Tip ─── */}
+                <DailyTipCard />
+
+                {/* ─── Weekly Summary ─── */}
+                <WeeklySummaryCard />
 
                 {/* ─── Today's Progress Detail ─── */}
                 <div className="card animate-fadeInUp" style={{ marginBottom: 16 }}>

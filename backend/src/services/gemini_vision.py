@@ -60,52 +60,67 @@ class GeminiVisionService:
         return img
     
     def _build_analysis_prompt(self) -> str:
-        """Build the prompt for Gemini to analyze food images"""
+        """Build the prompt for Gemini to analyze food images - optimized for consistency"""
         return """
-Analiza esta imagen de comida y proporciona un análisis detallado en formato JSON.
+Eres un nutricionista profesional con amplio conocimiento en porciones estándar latinoamericanas.
+Analiza esta imagen de comida siguiendo ESTRICTAMENTE este proceso paso a paso.
 
-Instrucciones importantes:
-1. Identifica TODOS los alimentos visibles en la imagen
-2. Estima la cantidad de cada alimento en GRAMOS (sé realista con las porciones)
-3. Si reconoces platos peruanos específicos (ceviche, lomo saltado, ají de gallina, etc.), nómbralos correctamente
-4. Especifica la preparación (crudo, frito, cocido, a la plancha, sancochado, al horno, etc.)
-5. Asigna un nivel de confianza de 0.0 a 1.0 para cada alimento detectado
-6. Si no estás seguro de un alimento, asigna confianza baja (<0.6)
+## PASO 1: Identificar Referencias de Tamaño
+- Observa el plato, recipiente o cubiertos visibles
+- Un plato estándar mide ~26cm de diámetro
+- Un vaso estándar contiene ~250ml
+- Una cuchara sopera contiene ~15ml
 
-Formato JSON requerido (RESPONDE SOLO CON JSON, SIN TEXTO ADICIONAL):
+## PASO 2: Identificar Cada Alimento
+- Nombra cada alimento en español
+- Si es un plato peruano (ceviche, lomo saltado, ají de gallina, arroz con pollo, etc.), nómbralo correctamente
+- Especifica la preparación (cocido, frito, a la plancha, crudo, sancochado, al horno, salteado)
+
+## PASO 3: Estimar Gramos (SÉ CONSISTENTE)
+Usa estas REFERENCIAS ESTÁNDAR para estimar gramos:
+- Arroz cocido: porción estándar = 150-200g (cubre ~1/3 del plato)
+- Pollo/carne: porción estándar = 120-150g (tamaño palma de la mano)
+- Ensalada/verduras: porción estándar = 80-120g
+- Papa/tubérculo cocido: porción estándar = 150-200g
+- Menestras/legumbres cocidas: porción estándar = 120-160g
+- Pan: una unidad = 30-50g
+- Huevo: una unidad = 50-60g
+- Pasta cocida: porción estándar = 180-220g
+- Sopa/caldo: un plato = 300-400ml
+
+REGLA DE ORO: Si el alimento cubre ~1/4 del plato, usa el extremo inferior del rango. Si cubre ~1/2, usa el extremo superior.
+
+## PASO 4: Asignar Confianza
+- 0.9-1.0: Alimento claramente visible y reconocible
+- 0.7-0.8: Alimento reconocible pero parcialmente oculto
+- 0.5-0.6: Alimento difícil de identificar con certeza
+
+## FORMATO DE RESPUESTA (SOLO JSON, SIN TEXTO):
 {
   "foods": [
     {
       "name": "nombre del alimento en español",
-      "estimated_grams": número entero,
-      "preparation": "crudo/frito/cocido/a la plancha/sancochado/al horno/etc",
+      "estimated_grams": número_entero,
+      "preparation": "tipo de preparación",
       "confidence": 0.0 a 1.0
     }
   ],
-  "meal_description": "descripción breve del plato completo"
+  "meal_description": "descripción breve del plato"
 }
 
-Ejemplo 1 - Plato simple:
+## EJEMPLO - Almuerzo peruano típico:
 {
   "foods": [
-    {"name": "arroz blanco", "estimated_grams": 200, "preparation": "cocido", "confidence": 0.9},
-    {"name": "pechuga de pollo", "estimated_grams": 150, "preparation": "a la plancha", "confidence": 0.85},
-    {"name": "lechuga", "estimated_grams": 30, "preparation": "crudo", "confidence": 0.8}
+    {"name": "arroz blanco", "estimated_grams": 180, "preparation": "cocido", "confidence": 0.95},
+    {"name": "pollo guisado", "estimated_grams": 140, "preparation": "guisado", "confidence": 0.85},
+    {"name": "papa amarilla", "estimated_grams": 120, "preparation": "sancochado", "confidence": 0.80},
+    {"name": "ensalada criolla", "estimated_grams": 60, "preparation": "crudo", "confidence": 0.75}
   ],
-  "meal_description": "Plato de arroz con pollo a la plancha y ensalada"
+  "meal_description": "Almuerzo de arroz con pollo guisado, papa y ensalada"
 }
 
-Ejemplo 2 - Plato peruano:
-{
-  "foods": [
-    {"name": "lomo saltado", "estimated_grams": 350, "preparation": "salteado", "confidence": 0.9},
-    {"name": "arroz blanco", "estimated_grams": 150, "preparation": "cocido", "confidence": 0.95},
-    {"name": "papas fritas", "estimated_grams": 100, "preparation": "frito", "confidence": 0.85}
-  ],
-  "meal_description": "Lomo saltado con arroz y papas fritas"
-}
-
-Recuerda: SOLO devuelve el JSON, sin texto adicional antes o después.
+IMPORTANTE: Sé CONSERVADOR y CONSISTENTE. Ante la duda, usa las porciones estándar listadas arriba.
+SOLO devuelve el JSON. Sin explicaciones ni texto adicional.
 """
     
     async def analyze_food_image(self, image_bytes: bytes) -> FoodAnalysisResult:

@@ -5,8 +5,9 @@ const config: CapacitorConfig = {
   appName: 'Smart Nutrition',
   webDir: 'dist',
   server: {
-    // Allow loading from localhost during development
-    androidScheme: 'http',
+    // Live Updates: Load from Render server for instant updates
+    url: 'https://smart-nutrition-platform.onrender.com',
+    androidScheme: 'https',
     cleartext: true,
     allowNavigation: ['*']
   },
