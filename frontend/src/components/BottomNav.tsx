@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 const tabs = [
     { path: '/dashboard', label: 'Inicio', icon: '⌂' },
     { path: '/food-logging', label: 'Diario', icon: '◉' },
-    { path: '/history', label: 'Historial', icon: '▤' },
+    { path: '/progress', label: 'Progreso', icon: '📊' },
     { path: '/meal-suggestions', label: 'Plan', icon: '✦' },
     { path: '/profile', label: 'Perfil', icon: '○' },
 ];

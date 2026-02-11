@@ -1,7 +1,130 @@
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { useMealStore } from '../store/mealStore';
+import { useWeightStore } from '../store/weightStore';
 import BottomNav from '../components/BottomNav';
+import WaterTracker from '../components/WaterTracker';
+
+// ─── Weight Progress Mini Card ───
+function WeightMiniCard({ navigate }: { navigate: (path: string) => void }) {
+    const { getLatestWeight, getTrend, getWeightChange } = useWeightStore();
+    const profile = useUserStore((s) => s.profile);
+    const latestWeight = getLatestWeight();
+    const trend = getTrend();
+    const weeklyChange = getWeightChange(7);
+    const currentWeight = latestWeight || profile?.currentWeightKg;
+
+    if (!currentWeight) return null;
+
+    const trendInfo = !trend ? { icon: '→', label: 'Sin datos', color: 'var(--color-text-tertiary)' }
+        : trend === 'down' ? { icon: '↓', label: 'Bajando', color: '#22c55e' }
+            : trend === 'up' ? { icon: '↑', label: 'Subiendo', color: '#ef4444' }
+                : { icon: '→', label: 'Estable', color: '#3b82f6' };
+
+    return (
+        <div
+            className="card animate-fadeInUp"
+            onClick={() => navigate('/progress')}
+            style={{ marginBottom: 16, cursor: 'pointer', padding: '16px 18px' }}
+        >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{
+                        width: 42, height: 42, borderRadius: 12,
+                        background: 'rgba(139, 92, 246, 0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 18,
+                    }}>⚖️</div>
+                    <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            {currentWeight} kg
+                            <span style={{ fontSize: 18, marginLeft: 6, color: trendInfo.color }}>{trendInfo.icon}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+                            {weeklyChange ? `${weeklyChange.change > 0 ? '+' : ''}${weeklyChange.change} kg esta semana` : 'Registra peso para ver tendencia'}
+                        </div>
+                    </div>
+                </div>
+                <div style={{ fontSize: 18, color: 'var(--color-text-tertiary)' }}>›</div>
+            </div>
+        </div>
+    );
+}
+
+// ─── Daily Streak Card ───
+function StreakCard() {
+    const { meals } = useMealStore();
+
+    // Calculate streak of consecutive days with logged meals
+    const streak = (() => {
+        if (meals.length === 0) return 0;
+        const uniqueDates = [...new Set(meals.map(m => m.date))].sort().reverse();
+        if (uniqueDates.length === 0) return 0;
+
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        // Check if the most recent date is today or yesterday
+        if (uniqueDates[0] !== todayStr) {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+            if (uniqueDates[0] !== yesterdayStr) return 0;
+        }
+
+        let count = 1;
+        for (let i = 1; i < uniqueDates.length; i++) {
+            const prev = new Date(uniqueDates[i - 1] + 'T12:00:00');
+            const curr = new Date(uniqueDates[i] + 'T12:00:00');
+            const diffDays = Math.round((prev.getTime() - curr.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays === 1) {
+                count++;
+            } else {
+                break;
+            }
+        }
+        return count;
+    })();
+
+    if (streak === 0) return null;
+
+    const streakEmoji = streak >= 7 ? '🔥' : streak >= 3 ? '⭐' : '✨';
+    const streakMsg = streak >= 7 ? '¡Increíble racha!' : streak >= 3 ? '¡Sigue así!' : '¡Buen inicio!';
+
+    return (
+        <div className="card animate-fadeInUp" style={{
+            marginBottom: 16,
+            padding: '14px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            background: streak >= 7
+                ? 'linear-gradient(135deg, rgba(249,115,22,0.08), rgba(239,68,68,0.08))'
+                : 'var(--color-surface)',
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ fontSize: 24 }}>{streakEmoji}</div>
+                <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                        {streak} {streak === 1 ? 'día' : 'días'} consecutivos
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+                        {streakMsg}
+                    </div>
+                </div>
+            </div>
+            <div style={{
+                fontSize: 22,
+                fontWeight: 800,
+                fontFamily: "'Poppins', sans-serif",
+                color: streak >= 7 ? '#f97316' : 'var(--color-brand)',
+                letterSpacing: '-0.02em',
+            }}>
+                {streak}
+            </div>
+        </div>
+    );
+}
 
 export default function DashboardScreen() {
     const navigate = useNavigate();
@@ -318,6 +441,17 @@ export default function DashboardScreen() {
                     </div>
                     <div style={{ fontSize: 18, opacity: 0.4 }}>›</div>
                 </div>
+
+                {/* ─── Water Tracker ─── */}
+                <div style={{ marginBottom: 16 }}>
+                    <WaterTracker />
+                </div>
+
+                {/* ─── Weight Progress Mini ─── */}
+                <WeightMiniCard navigate={navigate} />
+
+                {/* ─── Daily Streak ─── */}
+                <StreakCard />
 
                 {/* ─── Today's Progress Detail ─── */}
                 <div className="card animate-fadeInUp" style={{ marginBottom: 16 }}>
