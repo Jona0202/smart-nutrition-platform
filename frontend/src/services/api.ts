@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { UserProfile, CalculateProfileResponse } from '../types';
 
-// API base URL - Hardcoded for mobile testing
-const API_BASE_URL = 'http://192.168.18.6:8000';
+// API base URL - Production (Render)
+const API_BASE_URL = 'https://smart-nutrition-platform.onrender.com';
 
 class ApiService {
     /**
