@@ -4,7 +4,7 @@ import json
 import io
 from typing import List, Dict, Optional
 from PIL import Image
-import google.generativeai as genai
+from google import genai
 from pydantic import BaseModel
 
 
@@ -27,9 +27,9 @@ class GeminiVisionService:
     
     def __init__(self, api_key: str):
         """Initialize Gemini Vision service with API key"""
-        genai.configure(api_key=api_key)
-        # Using Gemini 2.5 Flash - confirmed available for this API key
-        self.model = genai.GenerativeModel('models/gemini-2.5-flash')
+        # New google-genai SDK uses a Client object
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = 'gemini-2.5-flash'
     
     def _prepare_image(self, image_bytes: bytes, max_size: int = 1024) -> Image.Image:
         """
@@ -143,8 +143,11 @@ SOLO devuelve el JSON. Sin explicaciones ni texto adicional.
             # Build prompt
             prompt = self._build_analysis_prompt()
             
-            # Call Gemini Vision API
-            response = self.model.generate_content([prompt, img])
+            # Call Gemini Vision API (async with new google-genai SDK)
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=[prompt, img]
+            )
             
             # Extract JSON from response
             response_text = response.text.strip()
