@@ -34,13 +34,18 @@ export interface FoodAnalysisResponse {
 /**
  * Analyze food image using AI
  * @param imageFile Image file to analyze
+ * @param scaledWeightG Optional: exact weight in grams from a tared scale for higher precision
  * @returns Analysis results with detected foods and nutrition
  */
-export const analyzeFood = async (imageFile: File): Promise<FoodAnalysisResponse> => {
+export const analyzeFood = async (imageFile: File, scaledWeightG?: number): Promise<FoodAnalysisResponse> => {
     console.log('🚀 analyzeFood called with file:', imageFile.name, imageFile.size, 'bytes');
+    if (scaledWeightG) console.log('⚖️ Scale mode active:', scaledWeightG, 'g');
 
     const formData = new FormData();
     formData.append('image', imageFile);
+    if (scaledWeightG && scaledWeightG > 0) {
+        formData.append('scaled_weight_g', String(scaledWeightG));
+    }
 
     console.log('📤 Sending POST request to /api/analyze-food');
     console.log('🌐 Base URL:', import.meta.env.VITE_API_URL || 'http://localhost:8000');

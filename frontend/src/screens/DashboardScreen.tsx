@@ -609,40 +609,60 @@ export default function DashboardScreen() {
                     </div>
                 </div>
 
-                {/* ─── AI Analysis Card ─── */}
-                <div
-                    className="card animate-fadeInUp"
-                    onClick={() => navigate('/ai-food-analysis')}
-                    style={{
-                        marginBottom: 16,
-                        cursor: 'pointer',
-                        background: 'var(--color-surface-dark)',
-                        border: 'none',
-                        color: 'white',
-                        padding: '18px 20px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 14,
-                    }}
-                >
-                    <div style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 14,
-                        background: 'rgba(255,255,255,0.12)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 20,
-                        flexShrink: 0,
-                    }}>
-                        📸
+                {/* ─── AI Analysis + Weekly Plan Row ─── */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                    <div
+                        className="card animate-fadeInUp"
+                        onClick={() => navigate('/ai-food-analysis')}
+                        style={{
+                            flex: 1,
+                            cursor: 'pointer',
+                            background: 'var(--color-surface-dark)',
+                            border: 'none',
+                            color: 'white',
+                            padding: '16px 14px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            gap: 8,
+                        }}
+                    >
+                        <div style={{
+                            width: 38, height: 38, borderRadius: 12,
+                            background: 'rgba(255,255,255,0.12)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                        }}>📸</div>
+                        <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>Analizar IA</div>
+                            <div style={{ fontSize: 11, opacity: 0.5 }}>Foto → nutrición</div>
+                        </div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 2 }}>Analizar con IA</div>
-                        <div style={{ fontSize: 12, opacity: 0.6 }}>Toma una foto y detecta los alimentos</div>
+                    <div
+                        className="card animate-fadeInUp"
+                        onClick={() => navigate('/weekly-plan')}
+                        style={{
+                            flex: 1,
+                            cursor: 'pointer',
+                            background: 'linear-gradient(135deg, rgba(99,102,241,0.85), rgba(139,92,246,0.85))',
+                            border: 'none',
+                            color: 'white',
+                            padding: '16px 14px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                            gap: 8,
+                        }}
+                    >
+                        <div style={{
+                            width: 38, height: 38, borderRadius: 12,
+                            background: 'rgba(255,255,255,0.15)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+                        }}>📅</div>
+                        <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>Plan Semanal</div>
+                            <div style={{ fontSize: 11, opacity: 0.6 }}>7 días de comidas</div>
+                        </div>
                     </div>
-                    <div style={{ fontSize: 18, opacity: 0.4 }}>›</div>
                 </div>
 
                 {/* ─── Recent Meals with Delete ─── */}

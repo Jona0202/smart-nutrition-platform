@@ -1,5 +1,5 @@
 """Food Analysis API - AI-powered food recognition from images"""
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form
 from pydantic import BaseModel
 from typing import List, Optional
 import os
@@ -87,6 +87,7 @@ def get_food_matcher() -> FoodMatcher:
 @router.post("/analyze-food", response_model=FoodAnalysisResponse)
 async def analyze_food_image(
     image: UploadFile = File(...),
+    scaled_weight_g: Optional[int] = Form(None),
     gemini: GeminiVisionService = Depends(get_gemini_service),
     matcher: FoodMatcher = Depends(get_food_matcher)
 ):
@@ -94,7 +95,7 @@ async def analyze_food_image(
     Analyze food image using Gemini Vision AI
     
     - Detects foods in image
-    - Estimates portions in grams
+    - Estimates portions in grams (or uses exact scale weight if provided)
     - Matches with food database
     - Calculates nutritional values
     """
@@ -105,8 +106,8 @@ async def analyze_food_image(
         if len(image_bytes) == 0:
             raise HTTPException(status_code=400, detail="Empty image file")
         
-        # Analyze with Gemini Vision
-        analysis_result = await gemini.analyze_food_image(image_bytes)
+        # Analyze with Gemini Vision (pass scale weight if available)
+        analysis_result = await gemini.analyze_food_image(image_bytes, scaled_weight_g=scaled_weight_g)
         
         # Match detected foods with database
         matched_foods = []

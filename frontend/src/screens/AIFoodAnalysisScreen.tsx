@@ -16,6 +16,9 @@ export default function AIFoodAnalysisScreen() {
     const [totalCalories, setTotalCalories] = useState(0);
     const [selectedMealType, setSelectedMealType] = useState<MealType>('lunch');
     const [error, setError] = useState('');
+    // Scale mode
+    const [useScale, setUseScale] = useState(false);
+    const [scaleWeightInput, setScaleWeightInput] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -57,12 +60,20 @@ export default function AIFoodAnalysisScreen() {
     const handleAnalyze = async () => {
         if (!selectedImage) return;
 
+        // Validate scale weight if mode is active
+        const scaledWeightG = useScale && scaleWeightInput ? parseInt(scaleWeightInput, 10) : undefined;
+        if (useScale && (!scaledWeightG || isNaN(scaledWeightG) || scaledWeightG <= 0)) {
+            setError('Ingresa el peso de la balanza en gramos para continuar.');
+            setStep('error');
+            return;
+        }
+
         setStep('analyzing');
         setError('');
 
         try {
-            console.log('🔍 Starting analysis...');
-            const result = await analyzeFood(selectedImage);
+            console.log('🔍 Starting analysis...' + (scaledWeightG ? ` (scale: ${scaledWeightG}g)` : ''));
+            const result = await analyzeFood(selectedImage, scaledWeightG);
             console.log('📥 Full result object:', JSON.stringify(result, null, 2));
             console.log('📥 result.success:', result.success);
             console.log('📥 result.matched_foods:', result.matched_foods);
@@ -153,6 +164,7 @@ export default function AIFoodAnalysisScreen() {
         setImagePreview(null);
         setDetectedFoods([]);
         setError('');
+        setScaleWeightInput('');
     };
 
     // Render different steps
@@ -176,6 +188,24 @@ export default function AIFoodAnalysisScreen() {
                             <div className="relative rounded-2xl overflow-hidden shadow-xl border-4 border-purple-200">
                                 <img src={imagePreview} alt="Preview" className="w-full h-80 object-cover" />
                             </div>
+                            {/* Scale mode badge */}
+                            {useScale && scaleWeightInput && (
+                                <div style={{
+                                    marginTop: 10,
+                                    padding: '8px 14px',
+                                    borderRadius: 10,
+                                    background: 'rgba(99,102,241,0.08)',
+                                    border: '1px solid rgba(99,102,241,0.25)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                }}>
+                                    <span style={{ fontSize: 16 }}>⚖️</span>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-brand)' }}>
+                                        Modo balanza: {scaleWeightInput}g · Nutrición calculada por peso exacto
+                                    </span>
+                                </div>
+                            )}
                             <button
                                 onClick={handleAnalyze}
                                 className="w-full mt-4 bg-primary text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
@@ -224,6 +254,74 @@ export default function AIFoodAnalysisScreen() {
                                     onChange={handleFileUpload}
                                     className="hidden"
                                 />
+                            {/* Scale mode toggle */}
+                                <div style={{
+                                    background: useScale ? 'rgba(99,102,241,0.06)' : 'var(--color-surface)',
+                                    border: useScale ? '2px solid var(--color-brand)' : '1.5px solid var(--color-border)',
+                                    borderRadius: 14,
+                                    padding: '14px 16px',
+                                    marginTop: 8,
+                                    transition: 'all 0.2s ease',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: useScale ? 12 : 0 }}>
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                ⚖️ Tengo balanza tara
+                                            </div>
+                                            <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 2 }}>
+                                                Mayor precisión usando el peso real
+                                            </div>
+                                        </div>
+                                        {/* Toggle switch */}
+                                        <div
+                                            onClick={() => { setUseScale(!useScale); setScaleWeightInput(''); }}
+                                            style={{
+                                                width: 46, height: 26, borderRadius: 13,
+                                                background: useScale ? 'var(--color-brand)' : 'var(--color-border)',
+                                                position: 'relative', cursor: 'pointer',
+                                                transition: 'background 0.25s ease', flexShrink: 0,
+                                            }}
+                                        >
+                                            <div style={{
+                                                position: 'absolute', top: 3,
+                                                left: useScale ? 23 : 3,
+                                                width: 20, height: 20, borderRadius: '50%',
+                                                background: 'white',
+                                                transition: 'left 0.25s ease',
+                                                boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+                                            }} />
+                                        </div>
+                                    </div>
+                                    {useScale && (
+                                        <div>
+                                            <label style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 6 }}>
+                                                Peso total en la balanza (gramos):
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                max="5000"
+                                                placeholder="ej: 350"
+                                                value={scaleWeightInput}
+                                                onChange={e => setScaleWeightInput(e.target.value)}
+                                                style={{
+                                                    width: '100%', padding: '10px 14px',
+                                                    borderRadius: 10,
+                                                    border: '1.5px solid var(--color-brand)',
+                                                    background: 'var(--color-surface)',
+                                                    color: 'var(--color-text-primary)',
+                                                    fontSize: 18, fontWeight: 700,
+                                                    fontFamily: "'Poppins', sans-serif",
+                                                    boxSizing: 'border-box', outline: 'none',
+                                                }}
+                                            />
+                                            <p style={{ fontSize: 10, color: 'var(--color-brand)', margin: '6px 0 0', fontWeight: 500 }}>
+                                                ✓ La IA usará este peso exacto para calcular los nutrientes
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <input
                                     ref={fileInputRef}
                                     type="file"

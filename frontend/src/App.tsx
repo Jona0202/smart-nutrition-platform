@@ -13,6 +13,7 @@ import FoodLoggingScreen from './screens/FoodLoggingScreen';
 import HistoryScreen from './screens/HistoryScreen';
 import ProgressScreen from './screens/ProgressScreen';
 import AIFoodAnalysisScreen from './screens/AIFoodAnalysisScreen';
+import WeeklyPlanScreen from './screens/WeeklyPlanScreen';
 import MealSuggestionsScreen from './screens/MealSuggestionsScreen';
 import './index.css';
 
@@ -124,6 +125,16 @@ function AppContent() {
                     element={
                         isOnboarded ? (
                             <MealSuggestionsScreen />
+                        ) : (
+                            <Navigate to="/onboarding" replace />
+                        )
+                    }
+                />
+                <Route
+                    path="/weekly-plan"
+                    element={
+                        isOnboarded ? (
+                            <WeeklyPlanScreen />
                         ) : (
                             <Navigate to="/onboarding" replace />
                         )

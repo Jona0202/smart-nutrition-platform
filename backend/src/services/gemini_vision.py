@@ -123,7 +123,51 @@ IMPORTANTE: Sé CONSERVADOR y CONSISTENTE. Ante la duda, usa las porciones está
 SOLO devuelve el JSON. Sin explicaciones ni texto adicional.
 """
     
-    async def analyze_food_image(self, image_bytes: bytes) -> FoodAnalysisResult:
+    def _build_scale_prompt(self, total_weight_g: int) -> str:
+        """Build prompt for when user has a tared scale with exact food weight"""
+        return f"""
+Eres un nutricionista profesional experto en composición de alimentos.
+El usuario ha pesado su comida en una balanza tara y el peso TOTAL de todos los alimentos en el plato es exactamente {total_weight_g} gramos.
+
+## TU MISIÓN:
+1. IDENTIFICA cada alimento visible en la imagen
+2. ESTIMA el PORCENTAJE de cada alimento respecto al total (los porcentajes deben sumar 100%)
+3. CALCULA los gramos de cada alimento: gramos = {total_weight_g} × porcentaje / 100
+4. Los gramos estimados deben sumar aproximadamente {total_weight_g}g
+
+## REGLAS IMPORTANTES:
+- El peso total SIEMPRE es {total_weight_g}g — respeta este dato exacto
+- Identifica el alimento en español
+- Especifica la preparación (cocido, frito, crudo, sancochado, a la plancha, etc.)
+- Si es un plato peruano, nómbralo correctamente
+
+## FORMATO DE RESPUESTA (SOLO JSON, SIN TEXTO):
+{{
+  "foods": [
+    {{
+      "name": "nombre del alimento en español",
+      "estimated_grams": número_entero,
+      "preparation": "tipo de preparación",
+      "confidence": 0.0 a 1.0
+    }}
+  ],
+  "meal_description": "descripción breve del plato ({total_weight_g}g total)"
+}}
+
+## EJEMPLO — Plato de {total_weight_g}g con arroz y pollo (60%/40%):
+{{
+  "foods": [
+    {{"name": "arroz blanco", "estimated_grams": {int(total_weight_g * 0.6)}, "preparation": "cocido", "confidence": 0.95}},
+    {{"name": "pollo a la plancha", "estimated_grams": {int(total_weight_g * 0.4)}, "preparation": "a la plancha", "confidence": 0.90}}
+  ],
+  "meal_description": "Arroz con pollo a la plancha ({total_weight_g}g total, peso real por balanza)"
+}}
+
+IMPORTANTE: Los gramos estimados deben sumar ~{total_weight_g}g.
+SOLO devuelve el JSON. Sin explicaciones ni texto adicional.
+"""
+
+    async def analyze_food_image(self, image_bytes: bytes, scaled_weight_g: Optional[int] = None) -> FoodAnalysisResult:
         """
         Analyze food image using Gemini Vision
         
@@ -140,8 +184,11 @@ SOLO devuelve el JSON. Sin explicaciones ni texto adicional.
             # Prepare image
             img = self._prepare_image(image_bytes)
             
-            # Build prompt
-            prompt = self._build_analysis_prompt()
+            # Select prompt based on mode
+            if scaled_weight_g and scaled_weight_g > 0:
+                prompt = self._build_scale_prompt(scaled_weight_g)
+            else:
+                prompt = self._build_analysis_prompt()
             
             # Call Gemini Vision API (async with new google-genai SDK)
             response = await self.client.aio.models.generate_content(

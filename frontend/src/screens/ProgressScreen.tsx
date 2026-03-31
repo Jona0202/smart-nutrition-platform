@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useWeightStore, WeightEntry } from '../store/weightStore';
 import { useUserStore } from '../store/userStore';
+import { useMeasurementsStore, MEASUREMENT_LABELS, MEASUREMENT_EMOJIS, BodyMeasurement } from '../store/measurementsStore';
 import BottomNav from '../components/BottomNav';
 
 // Simple SVG chart component
@@ -490,7 +491,249 @@ export default function ProgressScreen() {
                 )}
             </div>
 
+            {/* ─── Body Measurements Section ─── */}
+            <BodyMeasurementsSection />
+
             <BottomNav />
+        </div>
+    );
+}
+
+// ─── Mini measurement SVG chart ───
+function MeasurementMiniChart({ data }: { data: { date: string; value: number }[] }) {
+    if (data.length < 2) {
+        return (
+            <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-tertiary)', fontSize: 12 }}>
+                Registra al menos 2 medidas para ver la gráfica
+            </div>
+        );
+    }
+    const vals = data.map(d => d.value);
+    const minV = Math.min(...vals) - 1;
+    const maxV = Math.max(...vals) + 1;
+    const range = maxV - minV || 1;
+    const W = 300; const H = 80; const padX = 16; const padY = 10;
+    const cW = W - padX * 2; const cH = H - padY * 2;
+    const pts = data.map((d, i) => ({
+        x: padX + (i / (data.length - 1)) * cW,
+        y: padY + (1 - (d.value - minV) / range) * cH,
+        v: d.value,
+    }));
+    const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+    const areaPath = linePath + ` L ${pts[pts.length - 1].x} ${H - padY} L ${pts[0].x} ${H - padY} Z`;
+    return (
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 80 }}>
+            <path d={areaPath} fill="url(#measGrad)" opacity="0.25" />
+            <path d={linePath} fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" />
+            {pts.map((p, i) => (
+                <circle key={i} cx={p.x} cy={p.y} r="3" fill="#8b5cf6" stroke="white" strokeWidth="1.5" />
+            ))}
+            <text x={pts[0].x} y={pts[0].y - 6} textAnchor="middle" fill="var(--color-text-primary)" fontSize="9" fontWeight="600">{pts[0].v}</text>
+            <text x={pts[pts.length - 1].x} y={pts[pts.length - 1].y - 6} textAnchor="middle" fill="var(--color-text-primary)" fontSize="9" fontWeight="600">{pts[pts.length - 1].v}</text>
+            <defs>
+                <linearGradient id="measGrad" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.6" />
+                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+                </linearGradient>
+            </defs>
+        </svg>
+    );
+}
+
+type MeasField = keyof Omit<BodyMeasurement, 'id' | 'date' | 'note'>;
+const MEAS_FIELDS: MeasField[] = ['waist', 'hip', 'chest', 'arm', 'thigh', 'calf'];
+
+function BodyMeasurementsSection() {
+    const { entries, addEntry, removeEntry, getLatest, getHistory } = useMeasurementsStore();
+    const [showForm, setShowForm] = useState(false);
+    const [selectedField, setSelectedField] = useState<MeasField>('waist');
+    const [formValues, setFormValues] = useState<Partial<Record<MeasField, string>>>({});
+    const latest = getLatest();
+    const chartData = getHistory(selectedField, 15);
+
+    const handleSave = () => {
+        const data: Partial<Record<MeasField, number>> = {};
+        let hasAny = false;
+        for (const field of MEAS_FIELDS) {
+            const v = formValues[field];
+            if (v && !isNaN(parseFloat(v))) {
+                data[field] = parseFloat(v);
+                hasAny = true;
+            }
+        }
+        if (!hasAny) return;
+        addEntry(data);
+        setFormValues({});
+        setShowForm(false);
+    };
+
+    return (
+        <div style={{ maxWidth: 420, margin: '0 auto', padding: '0 16px 24px' }}>
+            {/* Section header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0 12px' }}>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+                    📏 Medidas Corporales
+                </h2>
+                {!showForm && (
+                    <button
+                        onClick={() => setShowForm(true)}
+                        style={{
+                            padding: '7px 12px', borderRadius: 10, border: 'none',
+                            background: 'var(--color-brand)', color: 'white',
+                            fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                        }}
+                    >
+                        + Registrar
+                    </button>
+                )}
+            </div>
+
+            {/* Latest measurements grid */}
+            {latest && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+                    {MEAS_FIELDS.map(field => {
+                        const val = latest[field];
+                        if (!val) return null;
+                        return (
+                            <div
+                                key={field}
+                                onClick={() => setSelectedField(field)}
+                                style={{
+                                    padding: '10px 8px',
+                                    borderRadius: 12,
+                                    background: selectedField === field ? 'var(--color-brand-light)' : 'var(--color-surface)',
+                                    border: selectedField === field ? '1px solid var(--color-brand-medium)' : '1px solid var(--color-border)',
+                                    textAlign: 'center',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                }}
+                            >
+                                <div style={{ fontSize: 16, marginBottom: 2 }}>{MEASUREMENT_EMOJIS[field]}</div>
+                                <div style={{ fontSize: 15, fontWeight: 700, color: selectedField === field ? 'var(--color-brand)' : 'var(--color-text-primary)', fontFamily: "'Poppins', sans-serif" }}>
+                                    {val}
+                                    <span style={{ fontSize: 9, fontWeight: 400, color: 'var(--color-text-tertiary)', marginLeft: 1 }}>cm</span>
+                                </div>
+                                <div style={{ fontSize: 9, color: 'var(--color-text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 2 }}>
+                                    {MEASUREMENT_LABELS[field]}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Mini chart for selected field */}
+            {chartData.length > 0 && (
+                <div className="card" style={{ marginBottom: 12, padding: '14px 10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, padding: '0 6px' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                            {MEASUREMENT_EMOJIS[selectedField]} {MEASUREMENT_LABELS[selectedField]}
+                        </span>
+                        <span style={{ fontSize: 10, color: 'var(--color-text-tertiary)' }}>
+                            Últimas {chartData.length} medidas
+                        </span>
+                    </div>
+                    <MeasurementMiniChart data={chartData} />
+                </div>
+            )}
+
+            {/* Add form */}
+            {showForm && (
+                <div className="card" style={{ marginBottom: 14, padding: 16 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text-primary)', margin: '0 0 14px', letterSpacing: '-0.02em' }}>
+                        📏 Registrar medidas de hoy
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 14 }}>
+                        {MEAS_FIELDS.map(field => (
+                            <div key={field}>
+                                <label style={{ fontSize: 11, color: 'var(--color-text-secondary)', display: 'block', marginBottom: 4 }}>
+                                    {MEASUREMENT_EMOJIS[field]} {MEASUREMENT_LABELS[field]} (cm)
+                                </label>
+                                <input
+                                    type="number"
+                                    step="0.5"
+                                    value={formValues[field] ?? ''}
+                                    onChange={e => setFormValues(prev => ({ ...prev, [field]: e.target.value }))}
+                                    placeholder={latest?.[field] ? `${latest[field]}` : '0.0'}
+                                    style={{
+                                        width: '100%', padding: '9px 10px', borderRadius: 8,
+                                        border: '1.5px solid var(--color-border)',
+                                        background: 'var(--color-surface)',
+                                        color: 'var(--color-text-primary)',
+                                        fontSize: 14, fontWeight: 600,
+                                        fontFamily: "'Poppins', sans-serif",
+                                        boxSizing: 'border-box', outline: 'none',
+                                    }}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                            onClick={() => { setShowForm(false); setFormValues({}); }}
+                            style={{
+                                flex: 1, padding: '11px', borderRadius: 10,
+                                border: '1.5px solid var(--color-border)', background: 'transparent',
+                                color: 'var(--color-text-secondary)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            }}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            style={{
+                                flex: 2, padding: '11px', borderRadius: 10, border: 'none',
+                                background: 'var(--color-brand)', color: 'white',
+                                fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                            }}
+                        >
+                            Guardar medidas
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* History */}
+            {entries.length > 0 && (
+                <div style={{ marginBottom: 8 }}>
+                    <h3 style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-secondary)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        Historial
+                    </h3>
+                    {entries.slice(-5).reverse().map(entry => {
+                        const d = new Date(entry.date + 'T12:00:00');
+                        const dateStr = d.toLocaleDateString('es', { day: 'numeric', month: 'short' });
+                        const fields = MEAS_FIELDS.filter(f => entry[f] !== undefined);
+                        return (
+                            <div key={entry.id} className="card" style={{ marginBottom: 6, padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>{dateStr}</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                        {fields.map(f => (
+                                            <span key={f} style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', borderRadius: 6, background: 'var(--color-surface-accent)', color: 'var(--color-text-secondary)' }}>
+                                                {MEASUREMENT_LABELS[f]}: {entry[f]}cm
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => removeEntry(entry.id)}
+                                    style={{ background: 'none', border: 'none', color: 'var(--color-text-tertiary)', fontSize: 16, cursor: 'pointer', padding: '0 4px', marginLeft: 8 }}
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {!latest && !showForm && (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-tertiary)', fontSize: 13, background: 'var(--color-surface)', borderRadius: 14, border: '1px solid var(--color-border)' }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>📐</div>
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>Sin medidas registradas</div>
+                    <div style={{ fontSize: 12 }}>Registra tus medidas para hacer seguimiento de tu transformación corporal.</div>
+                </div>
+            )}
         </div>
     );
 }
