@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { App } from '@capacitor/app';
+import { Toast } from '@capacitor/toast';
 
 // Pestañas principales que NO son el Dashboard central
 const OTHER_MAIN_TABS = [
@@ -12,17 +13,30 @@ const OTHER_MAIN_TABS = [
     '/profile'
 ];
 
+let lastBackPress = 0;
+const TIME_PERIOD_TO_EXIT = 2000; // 2 segundos
+
 export function useBackButton() {
     const navigate = useNavigate();
     const location = useLocation();
 
     useEffect(() => {
-        const handler = App.addListener('backButton', ({ canGoBack }) => {
+        const handler = App.addListener('backButton', async ({ canGoBack }) => {
             const currentPath = location.pathname;
 
-            // 1. Si estamos en el Inicio (Dashboard) o pantallas de sesión, salir (minimizar) la app
+            // 1. Si estamos en el Inicio (Dashboard) o pantallas de sesión, hacer doble tap para salir
             if (['/dashboard', '/welcome', '/login', '/register'].includes(currentPath)) {
-                App.minimizeApp();
+                const now = new Date().getTime();
+                if (now - lastBackPress < TIME_PERIOD_TO_EXIT) {
+                    App.exitApp();
+                } else {
+                    lastBackPress = now;
+                    await Toast.show({
+                        text: 'Presiona atrás otra vez para salir',
+                        duration: 'short',
+                        position: 'bottom'
+                    });
+                }
                 return;
             }
 

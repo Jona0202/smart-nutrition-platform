@@ -353,9 +353,9 @@ export default function DashboardScreen() {
     const remaining = Math.max(0, targetCalories - currentCalories);
 
     const macros = [
-        { label: 'Proteína', current: Math.round(currentProtein), target: Math.round(targetProteinG), color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)' },
-        { label: 'Carbos', current: Math.round(currentCarbs), target: Math.round(targetCarbsG), color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)' },
-        { label: 'Grasa', current: Math.round(currentFat), target: Math.round(targetFatG), color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)' },
+        { label: 'Proteína', current: Math.round(currentProtein), target: Math.round(targetProteinG), color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)', emoji: '🍗' },
+        { label: 'Carbos', current: Math.round(currentCarbs), target: Math.round(targetCarbsG), color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', emoji: '🥖' },
+        { label: 'Grasa', current: Math.round(currentFat), target: Math.round(targetFatG), color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)', emoji: '🥑' },
     ];
 
     const getGreeting = () => {
@@ -422,9 +422,38 @@ export default function DashboardScreen() {
             </div>
 
             <div style={{ maxWidth: 420, margin: '0 auto', padding: '0 16px' }}>
+                {/* ─── Daily Calorie Status Banner ─── */}
+                {remaining > 0 ? (
+                    <div className="card animate-fadeInUp" style={{ padding: '12px 16px', marginBottom: 16, marginTop: -20, background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: 20 }}>🔥</span>
+                            <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#b45309' }}>
+                                Aún te faltan {remaining} kcal para llegar a tu meta hoy.
+                            </div>
+                        </div>
+                    </div>
+                ) : remaining === 0 && currentCalories > targetCalories ? (
+                    <div className="card animate-fadeInUp" style={{ padding: '12px 16px', marginBottom: 16, marginTop: -20, background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: 20 }}>⚠️</span>
+                            <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#ef4444' }}>
+                                Has sobrepasado tu límite diario por {Math.abs(currentCalories - targetCalories)} kcal.
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="card animate-fadeInUp" style={{ padding: '12px 16px', marginBottom: 16, marginTop: -20, background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{ fontSize: 20 }}>🎉</span>
+                            <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#15803d' }}>
+                                ¡Felicidades! Has completado tu meta de calorías de hoy.
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* ─── Calorie Ring Card ─── */}
                 <div className="card-elevated animate-fadeInUp" style={{
-                    marginTop: -20,
                     padding: '24px 20px',
                     marginBottom: 16,
                 }}>
@@ -537,13 +566,9 @@ export default function DashboardScreen() {
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     margin: '0 auto 8px',
+                                    fontSize: 20,
                                 }}>
-                                    <div style={{
-                                        width: 10,
-                                        height: 10,
-                                        borderRadius: 3,
-                                        background: m.color,
-                                    }} />
+                                    {m.emoji}
                                 </div>
                                 <div style={{
                                     fontSize: 18,

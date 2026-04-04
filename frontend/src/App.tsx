@@ -17,6 +17,8 @@ import WeeklyPlanScreen from './screens/WeeklyPlanScreen';
 import MealSuggestionsScreen from './screens/MealSuggestionsScreen';
 import './index.css';
 
+import { notificationService } from './services/notificationService';
+
 // Debug utilities (only in development)
 if (import.meta.env.DEV) {
     import('./utils/debug');
@@ -32,7 +34,11 @@ function AppContent() {
     // Check auth on mount
     useEffect(() => {
         checkAuth();
-    }, [checkAuth]);
+        // Pedir permisos en background si está onboarded
+        if (isOnboarded) {
+            notificationService.initialize();
+        }
+    }, [checkAuth, isOnboarded]);
 
     return (
         <div className="min-h-screen bg-gray-50">
