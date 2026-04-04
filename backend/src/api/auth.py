@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from ..infrastructure.database.database import get_db
 from ..infrastructure.database.models import User
@@ -10,12 +10,14 @@ from ..infrastructure.auth.security import (
 )
 from ..api.schemas import UserRegister, UserLogin, TokenResponse, UserResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from ..infrastructure.config.limiter import limiter
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 security = HTTPBearer()
 
 @router.post("/register", response_model=TokenResponse)
-def register(user_data: UserRegister, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, user_data: UserRegister, db: Session = Depends(get_db)):
     """Register a new user."""
     
     # Check if email already exists
@@ -55,7 +57,8 @@ def register(user_data: UserRegister, db: Session = Depends(get_db)):
     )
 
 @router.post("/login", response_model=TokenResponse)
-def login(credentials: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db)):
     """Login an existing user."""
     
     # Find user by email

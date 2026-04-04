@@ -90,3 +90,40 @@ class SyncMealsResponse(BaseModel):
 
 class MealsResponse(BaseModel):
     meals: List[MealData]
+
+
+# Hydration schemas
+class HydrationSyncRequest(BaseModel):
+    date: str           # YYYY-MM-DD
+    glasses: int        # number of glasses
+    ml_total: float     # total ml
+
+class HydrationResponse(BaseModel):
+    date: str
+    glasses: int
+    ml_total: float
+    updated_at: Optional[str] = None
+
+class HydrationHistoryResponse(BaseModel):
+    logs: List[HydrationResponse]
+
+
+# Weight History schemas
+class WeightEntryRequest(BaseModel):
+    weight_kg: float
+    body_fat_percentage: Optional[float] = None
+    notes: Optional[str] = None
+    recorded_at: Optional[str] = None  # ISO datetime string; defaults to now
+
+class WeightEntryResponse(BaseModel):
+    id: int
+    weight_kg: float
+    body_fat_percentage: Optional[float] = None
+    notes: Optional[str] = None
+    recorded_at: str
+
+    class Config:
+        from_attributes = True
+
+class WeightHistoryResponse(BaseModel):
+    entries: List[WeightEntryResponse]

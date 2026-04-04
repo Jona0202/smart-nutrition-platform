@@ -16,6 +16,8 @@ class User(Base):
     profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     metabolic_profile = relationship("MetabolicProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
     meals = relationship("LoggedMeal", back_populates="user", cascade="all, delete-orphan")
+    hydration_logs = relationship("HydrationLog", back_populates="user", cascade="all, delete-orphan")
+    weight_history = relationship("WeightHistory", back_populates="user", cascade="all, delete-orphan")
 
 
 class UserProfile(Base):
@@ -85,3 +87,31 @@ class LoggedMeal(Base):
     
     # Relationship
     user = relationship("User", back_populates="meals")
+
+
+class HydrationLog(Base):
+    __tablename__ = "hydration_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    glasses = Column(Integer, nullable=False, default=0)  # number of glasses (250ml each)
+    ml_total = Column(Float, nullable=False, default=0.0) # total ml consumed
+    log_date = Column(String, nullable=False)              # YYYY-MM-DD format
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    user = relationship("User", back_populates="hydration_logs")
+
+
+class WeightHistory(Base):
+    __tablename__ = "weight_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    weight_kg = Column(Float, nullable=False)
+    body_fat_percentage = Column(Float, nullable=True)
+    notes = Column(String, nullable=True)
+    recorded_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    # Relationship
+    user = relationship("User", back_populates="weight_history")

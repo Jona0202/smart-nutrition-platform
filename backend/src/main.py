@@ -11,7 +11,12 @@ from fastapi.responses import FileResponse
 import uvicorn
 import os
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
 from src.infrastructure.config.settings import settings
+from src.infrastructure.config.limiter import limiter
 from src.domain.services.metabolic_calculator import MetabolicCalculator
 from src.domain.services.macro_optimizer import MacroOptimizer
 from src.api.auth import router as auth_router
@@ -27,6 +32,11 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# Rate Limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # CORS middleware
 app.add_middleware(

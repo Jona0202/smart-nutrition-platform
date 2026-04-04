@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 import json
 from ..infrastructure.database.database import get_db
-from ..infrastructure.database.models import User, UserProfile, MetabolicProfile, LoggedMeal
+from ..infrastructure.database.models import User, UserProfile, MetabolicProfile, LoggedMeal, HydrationLog, WeightHistory
 from ..api.auth import get_current_user_dependency
 from ..api.schemas import (
     SyncProfileRequest,
@@ -14,7 +14,13 @@ from ..api.schemas import (
     SyncMealsRequest,
     SyncMealsResponse,
     MealsResponse,
-    MealData
+    MealData,
+    HydrationSyncRequest,
+    HydrationResponse,
+    HydrationHistoryResponse,
+    WeightEntryRequest,
+    WeightEntryResponse,
+    WeightHistoryResponse,
 )
 
 router = APIRouter(prefix="/api/sync", tags=["sync"])
@@ -249,3 +255,115 @@ def delete_meal(
     db.commit()
     
     return SyncMealsResponse(success=True, synced=1)
+
+# ─── Hydration Endpoints ───
+
+@router.post("/hydration", response_model=HydrationResponse)
+def sync_hydration(
+    data: HydrationSyncRequest,
+    current_user: User = Depends(get_current_user_dependency),
+    db: Session = Depends(get_db)
+):
+    """Sync daily hydration (upsert by date)."""
+    log = db.query(HydrationLog).filter(
+        HydrationLog.user_id == current_user.id,
+        HydrationLog.log_date == data.date
+    ).first()
+    
+    if log:
+        log.glasses = data.glasses
+        log.ml_total = data.ml_total
+    else:
+        log = HydrationLog(
+            user_id=current_user.id,
+            log_date=data.date,
+            glasses=data.glasses,
+            ml_total=data.ml_total
+        )
+        db.add(log)
+        
+    db.commit()
+    db.refresh(log)
+    
+    return HydrationResponse(
+        date=log.log_date,
+        glasses=log.glasses,
+        ml_total=log.ml_total,
+        updated_at=log.updated_at.isoformat() if log.updated_at else None
+    )
+
+@router.get("/hydration", response_model=HydrationHistoryResponse)
+def get_hydration_history(
+    current_user: User = Depends(get_current_user_dependency),
+    db: Session = Depends(get_db)
+):
+    """Get hydration history."""
+    logs = db.query(HydrationLog).filter(HydrationLog.user_id == current_user.id).order_by(HydrationLog.log_date.desc()).all()
+    
+    result = []
+    for log in logs:
+        result.append(HydrationResponse(
+            date=log.log_date,
+            glasses=log.glasses,
+            ml_total=log.ml_total,
+            updated_at=log.updated_at.isoformat() if log.updated_at else None
+        ))
+        
+    return HydrationHistoryResponse(logs=result)
+
+# ─── Weight History Endpoints ───
+
+@router.post("/weight", response_model=WeightEntryResponse)
+def add_weight_entry(
+    data: WeightEntryRequest,
+    current_user: User = Depends(get_current_user_dependency),
+    db: Session = Depends(get_db)
+):
+    """Add a new weight history entry."""
+    entry = WeightHistory(
+        user_id=current_user.id,
+        weight_kg=data.weight_kg,
+        body_fat_percentage=data.body_fat_percentage,
+        notes=data.notes,
+        recorded_at=datetime.fromisoformat(data.recorded_at.replace('Z', '+00:00')) if data.recorded_at else datetime.utcnow()
+    )
+    
+    db.add(entry)
+    
+    # Also update current weight in profile
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+    if profile:
+        profile.current_weight_kg = data.weight_kg
+        if data.body_fat_percentage is not None:
+            profile.body_fat_percentage = data.body_fat_percentage
+            
+    db.commit()
+    db.refresh(entry)
+    
+    return WeightEntryResponse(
+        id=entry.id,
+        weight_kg=entry.weight_kg,
+        body_fat_percentage=entry.body_fat_percentage,
+        notes=entry.notes,
+        recorded_at=entry.recorded_at.isoformat()
+    )
+
+@router.get("/weight", response_model=WeightHistoryResponse)
+def get_weight_history(
+    current_user: User = Depends(get_current_user_dependency),
+    db: Session = Depends(get_db)
+):
+    """Get weight history."""
+    entries = db.query(WeightHistory).filter(WeightHistory.user_id == current_user.id).order_by(WeightHistory.recorded_at.desc()).all()
+    
+    result = []
+    for entry in entries:
+        result.append(WeightEntryResponse(
+            id=entry.id,
+            weight_kg=entry.weight_kg,
+            body_fat_percentage=entry.body_fat_percentage,
+            notes=entry.notes,
+            recorded_at=entry.recorded_at.isoformat()
+        ))
+        
+    return WeightHistoryResponse(entries=result)

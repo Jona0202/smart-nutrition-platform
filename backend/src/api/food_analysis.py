@@ -1,5 +1,5 @@
 """Food Analysis API - AI-powered food recognition from images"""
-from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends, Form, Request
 from pydantic import BaseModel
 from typing import List, Optional
 import os
@@ -11,6 +11,7 @@ load_dotenv()
 
 from ..services.gemini_vision import GeminiVisionService, DetectedFood
 from ..services.food_matcher import FoodMatcher
+from ..infrastructure.config.limiter import limiter
 
 
 router = APIRouter(prefix="/api", tags=["food-analysis"])
@@ -85,7 +86,9 @@ def get_food_matcher() -> FoodMatcher:
 
 
 @router.post("/analyze-food", response_model=FoodAnalysisResponse)
+@limiter.limit("10/hour")
 async def analyze_food_image(
+    request: Request,
     image: UploadFile = File(...),
     scaled_weight_g: Optional[int] = Form(None),
     gemini: GeminiVisionService = Depends(get_gemini_service),

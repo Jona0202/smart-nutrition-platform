@@ -3,12 +3,14 @@ from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
 
+from ..config.settings import settings
+
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT settings
-SECRET_KEY = "your-secret-key-change-this-in-production"  # TODO: Move to environment variable
-ALGORITHM = "HS256"
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
 ACCESS_TOKEN_EXPIRE_DAYS = 7
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

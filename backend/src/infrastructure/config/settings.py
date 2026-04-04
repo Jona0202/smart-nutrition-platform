@@ -31,8 +31,15 @@ class Settings(BaseSettings):
     # Gemini API
     GEMINI_API_KEY: str = ""
 
-    # CORS - Allow all for debugging
-    ALLOWED_ORIGINS: List[str] = ["*"]
+    # CORS - Restricted origins
+    ALLOWED_ORIGINS: List[str] = [
+        "http://localhost",
+        "http://localhost:5173",  # Vite dev server
+        "http://localhost:8100",  # Ionic dev server
+        "capacitor://localhost",  # Capacitor iOS/Android
+        "http://10.0.2.2:5173",   # Android Emulator
+        "https://smart-nutrition-platform.onrender.com" # Production
+    ]
 
     # Redis (optional)
     REDIS_URL: str = "redis://localhost:6379/0"

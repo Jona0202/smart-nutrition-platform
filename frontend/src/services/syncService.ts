@@ -95,7 +95,75 @@ export const syncService = {
     },
 
     /**
-     * Full sync - profile and meals
+     * Sync local hydration to cloud (today's entry)
+     */
+    async syncHydrationToCloud() {
+        const { getTodayMl } = await import('../store/waterStore').then(m => m.useWaterStore.getState());
+        
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        
+        const todayMl = getTodayMl();
+        if (todayMl === 0) return; // Nothing to sync for today yet
+
+        try {
+            await api.post('/api/sync/hydration', {
+                date: today,
+                glasses: Math.floor(todayMl / 250),
+                ml_total: todayMl
+            });
+        } catch (error: any) {
+            console.error('Failed to sync hydration:', error);
+        }
+    },
+
+    /**
+     * Load hydration from cloud
+     */
+    async loadHydrationFromCloud() {
+        try {
+            const response = await api.get('/api/sync/hydration');
+            if (response.data?.logs) {
+                const { entries } = await import('../store/waterStore').then(m => m.useWaterStore.getState());
+                
+                // Extremely simple merge: override matching local dates with server data
+                let mergedEntries = [...entries];
+                for (let serverLog of response.data.logs) {
+                    const idx = mergedEntries.findIndex(e => e.date === serverLog.date);
+                    if (idx >= 0) {
+                        mergedEntries[idx].ml = serverLog.ml_total;
+                    } else {
+                        mergedEntries.push({ date:serverLog.date, ml: serverLog.ml_total });
+                    }
+                }
+                
+                const { useWaterStore } = await import('../store/waterStore');
+                useWaterStore.setState({ entries: mergedEntries });
+                localStorage.setItem('nutrition-water-storage', JSON.stringify(mergedEntries));
+            }
+        } catch (error: any) {
+             console.error('Failed to load hydration history:', error);
+        }
+    },
+    
+    /**
+     * Sync recorded weight entry (useful if weight was changed today)
+     */
+    async syncWeightToCloud(weightKg: number, bodyFatPercentage?: number) {
+        try {
+            await api.post('/api/sync/weight', {
+                weight_kg: weightKg,
+                body_fat_percentage: bodyFatPercentage,
+                notes: 'Updated from frontend sync',
+                recorded_at: new Date().toISOString()
+            });
+        } catch (error) {
+             console.error('Failed to sync weight to cloud:', error);
+        }
+    },
+
+    /**
+     * Full sync - profile, meals, hydration
      */
     async fullSync() {
         try {
@@ -107,6 +175,10 @@ export const syncService = {
             // Sync meals (merge with local)
             await this.loadMealsFromCloud(7);
             await this.syncMealsToCloud();
+            
+            // Sync hydration
+            await this.loadHydrationFromCloud();
+            await this.syncHydrationToCloud();
 
             useUserStore.setState({
                 lastSyncAt: new Date().toISOString(),
@@ -126,6 +198,7 @@ export const syncService = {
             // First, try to load data from server
             await this.loadProfileFromCloud();
             await this.loadMealsFromCloud(30);
+            await this.loadHydrationFromCloud();
 
             useUserStore.setState({
                 lastSyncAt: new Date().toISOString(),
@@ -150,6 +223,9 @@ export const syncService = {
 
             // Upload meals
             await this.syncMealsToCloud();
+            
+            // Upload hydration
+            await this.syncHydrationToCloud();
 
             useUserStore.setState({
                 lastSyncAt: new Date().toISOString(),
