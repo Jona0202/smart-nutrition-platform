@@ -19,6 +19,9 @@ export default function AIFoodAnalysisScreen() {
     // Scale mode
     const [useScale, setUseScale] = useState(false);
     const [scaleWeightInput, setScaleWeightInput] = useState('');
+    
+    // Additional context for hidden ingredients
+    const [additionalContext, setAdditionalContext] = useState('');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -73,7 +76,7 @@ export default function AIFoodAnalysisScreen() {
 
         try {
             console.log('🔍 Starting analysis...' + (scaledWeightG ? ` (scale: ${scaledWeightG}g)` : ''));
-            const result = await analyzeFood(selectedImage, scaledWeightG);
+            const result = await analyzeFood(selectedImage, scaledWeightG, additionalContext);
             console.log('📥 Full result object:', JSON.stringify(result, null, 2));
             console.log('📥 result.success:', result.success);
             console.log('📥 result.matched_foods:', result.matched_foods);
@@ -165,6 +168,7 @@ export default function AIFoodAnalysisScreen() {
         setDetectedFoods([]);
         setError('');
         setScaleWeightInput('');
+        setAdditionalContext('');
     };
 
     // Render different steps
@@ -320,6 +324,30 @@ export default function AIFoodAnalysisScreen() {
                                             </p>
                                         </div>
                                     )}
+                                </div>
+                                
+                                {/* Additional Context Input */}
+                                <div style={{ marginTop: 12 }}>
+                                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', display: 'block', marginBottom: 6 }}>
+                                        🕵️ Ingredientes ocultos (Opcional)
+                                    </label>
+                                    <textarea
+                                        placeholder="Ej: le eché 2 cdtas de azúcar, está frito en aceite, tiene un scoop de proteína..."
+                                        value={additionalContext}
+                                        onChange={e => setAdditionalContext(e.target.value)}
+                                        rows={2}
+                                        style={{
+                                            width: '100%', padding: '12px 14px',
+                                            borderRadius: 14,
+                                            border: '1.5px solid var(--color-border)',
+                                            background: 'var(--color-surface)',
+                                            color: 'var(--color-text-primary)',
+                                            fontSize: 14,
+                                            fontFamily: "'Poppins', sans-serif",
+                                            boxSizing: 'border-box', outline: 'none',
+                                            resize: 'none'
+                                        }}
+                                    />
                                 </div>
 
                                 <input

@@ -91,6 +91,7 @@ async def analyze_food_image(
     request: Request,
     image: UploadFile = File(...),
     scaled_weight_g: Optional[int] = Form(None),
+    additional_context: Optional[str] = Form(None),
     gemini: GeminiVisionService = Depends(get_gemini_service),
     matcher: FoodMatcher = Depends(get_food_matcher)
 ):
@@ -109,8 +110,8 @@ async def analyze_food_image(
         if len(image_bytes) == 0:
             raise HTTPException(status_code=400, detail="Empty image file")
         
-        # Analyze with Gemini Vision (pass scale weight if available)
-        analysis_result = await gemini.analyze_food_image(image_bytes, scaled_weight_g=scaled_weight_g)
+        # Analyze with Gemini Vision (pass scale weight and context if available)
+        analysis_result = await gemini.analyze_food_image(image_bytes, scaled_weight_g=scaled_weight_g, additional_context=additional_context)
         
         # Match detected foods with database
         matched_foods = []

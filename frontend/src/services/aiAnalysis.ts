@@ -35,9 +35,10 @@ export interface FoodAnalysisResponse {
  * Analyze food image using AI
  * @param imageFile Image file to analyze
  * @param scaledWeightG Optional: exact weight in grams from a tared scale for higher precision
+ * @param additionalContext Optional: extra context like hidden ingredients (sugar, oil, etc)
  * @returns Analysis results with detected foods and nutrition
  */
-export const analyzeFood = async (imageFile: File, scaledWeightG?: number): Promise<FoodAnalysisResponse> => {
+export const analyzeFood = async (imageFile: File, scaledWeightG?: number, additionalContext?: string): Promise<FoodAnalysisResponse> => {
     console.log('🚀 analyzeFood called with file:', imageFile.name, imageFile.size, 'bytes');
     if (scaledWeightG) console.log('⚖️ Scale mode active:', scaledWeightG, 'g');
 
@@ -45,6 +46,9 @@ export const analyzeFood = async (imageFile: File, scaledWeightG?: number): Prom
     formData.append('image', imageFile);
     if (scaledWeightG && scaledWeightG > 0) {
         formData.append('scaled_weight_g', String(scaledWeightG));
+    }
+    if (additionalContext && additionalContext.trim().length > 0) {
+        formData.append('additional_context', additionalContext.trim());
     }
 
     console.log('📤 Sending POST request to /api/analyze-food');

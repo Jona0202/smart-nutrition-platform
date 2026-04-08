@@ -59,10 +59,15 @@ class GeminiVisionService:
         
         return img
     
-    def _build_analysis_prompt(self) -> str:
+    def _build_analysis_prompt(self, additional_context: Optional[str] = None) -> str:
         """Build the prompt for Gemini to analyze food images - optimized for consistency"""
-        return """
-Eres un nutricionista profesional con amplio conocimiento en porciones estándar latinoamericanas.
+        
+        context_block = ""
+        if additional_context:
+            context_block = f"\n\n## ATENCIÓN - INFORMACIÓN OCULTA CONFIRMADA POR EL USUARIO (INCLÚYELO OBLIGATORIAMENTE):\n{additional_context}\nDebe constar en tu respuesta JSON como alimento adicional con sus calorías y macronutrientes estimadas (ej. cucharadas de azúcar, aceites, scoop de proteína, etc)."
+
+        return f"""
+Eres un nutricionista profesional con amplio conocimiento en porciones estándar latinoamericanas.{context_block}
 Analiza esta imagen de comida siguiendo ESTRICTAMENTE este proceso paso a paso.
 
 ## PASO 1: Identificar Referencias de Tamaño
@@ -123,10 +128,15 @@ IMPORTANTE: Sé CONSERVADOR y CONSISTENTE. Ante la duda, usa las porciones está
 SOLO devuelve el JSON. Sin explicaciones ni texto adicional.
 """
     
-    def _build_scale_prompt(self, total_weight_g: int) -> str:
+    def _build_scale_prompt(self, total_weight_g: int, additional_context: Optional[str] = None) -> str:
         """Build prompt for when user has a tared scale with exact food weight"""
+        
+        context_block = ""
+        if additional_context:
+            context_block = f"\n\n## ATENCIÓN - INFORMACIÓN OCULTA CONFIRMADA POR EL USUARIO (INCLÚYELO OBLIGATORIAMENTE):\n{additional_context}\nDebe constar en tu respuesta JSON como alimento adicional (ej. cucharadas de azúcar, aceite extra, etc)."
+
         return f"""
-Eres un nutricionista profesional experto en composición de alimentos.
+Eres un nutricionista profesional experto en composición de alimentos.{context_block}
 El usuario ha pesado su comida en una balanza tara y el peso TOTAL de todos los alimentos en el plato es exactamente {total_weight_g} gramos.
 
 ## TU MISIÓN:
@@ -167,7 +177,7 @@ IMPORTANTE: Los gramos estimados deben sumar ~{total_weight_g}g.
 SOLO devuelve el JSON. Sin explicaciones ni texto adicional.
 """
 
-    async def analyze_food_image(self, image_bytes: bytes, scaled_weight_g: Optional[int] = None) -> FoodAnalysisResult:
+    async def analyze_food_image(self, image_bytes: bytes, scaled_weight_g: Optional[int] = None, additional_context: Optional[str] = None) -> FoodAnalysisResult:
         """
         Analyze food image using Gemini Vision
         
@@ -186,9 +196,9 @@ SOLO devuelve el JSON. Sin explicaciones ni texto adicional.
             
             # Select prompt based on mode
             if scaled_weight_g and scaled_weight_g > 0:
-                prompt = self._build_scale_prompt(scaled_weight_g)
+                prompt = self._build_scale_prompt(scaled_weight_g, additional_context)
             else:
-                prompt = self._build_analysis_prompt()
+                prompt = self._build_analysis_prompt(additional_context)
             
             # Call Gemini Vision API (async with new google-genai SDK)
             response = await self.client.aio.models.generate_content(
