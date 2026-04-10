@@ -210,6 +210,32 @@ export default function AIFoodAnalysisScreen() {
                                     </span>
                                 </div>
                             )}
+                            {/* Hidden Ingredients Input */}
+                            <div style={{ marginTop: 12 }}>
+                                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', display: 'block', marginBottom: 6 }}>
+                                    🕵️ Ingredientes ocultos (Opcional)
+                                </label>
+                                <textarea
+                                    placeholder="Ej: 2 cdtas de azúcar, frito en aceite, 1 scoop de proteína..."
+                                    value={additionalContext}
+                                    onChange={e => setAdditionalContext(e.target.value)}
+                                    rows={2}
+                                    style={{
+                                        width: '100%', padding: '12px 14px',
+                                        borderRadius: 14,
+                                        border: '1.5px solid var(--color-border)',
+                                        background: 'var(--color-surface)',
+                                        color: 'var(--color-text-primary)',
+                                        fontSize: 14,
+                                        fontFamily: "'Poppins', sans-serif",
+                                        boxSizing: 'border-box', outline: 'none',
+                                        resize: 'none'
+                                    }}
+                                />
+                                <p style={{ fontSize: 11, color: 'var(--color-text-tertiary)', marginTop: 4 }}>
+                                    La IA sumará estas calorías aunque no las vea en la foto
+                                </p>
+                            </div>
                             <button
                                 onClick={handleAnalyze}
                                 className="w-full mt-4 bg-primary text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
@@ -324,30 +350,6 @@ export default function AIFoodAnalysisScreen() {
                                             </p>
                                         </div>
                                     )}
-                                </div>
-                                
-                                {/* Additional Context Input */}
-                                <div style={{ marginTop: 12 }}>
-                                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)', display: 'block', marginBottom: 6 }}>
-                                        🕵️ Ingredientes ocultos (Opcional)
-                                    </label>
-                                    <textarea
-                                        placeholder="Ej: le eché 2 cdtas de azúcar, está frito en aceite, tiene un scoop de proteína..."
-                                        value={additionalContext}
-                                        onChange={e => setAdditionalContext(e.target.value)}
-                                        rows={2}
-                                        style={{
-                                            width: '100%', padding: '12px 14px',
-                                            borderRadius: 14,
-                                            border: '1.5px solid var(--color-border)',
-                                            background: 'var(--color-surface)',
-                                            color: 'var(--color-text-primary)',
-                                            fontSize: 14,
-                                            fontFamily: "'Poppins', sans-serif",
-                                            boxSizing: 'border-box', outline: 'none',
-                                            resize: 'none'
-                                        }}
-                                    />
                                 </div>
 
                                 <input
