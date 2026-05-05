@@ -101,28 +101,28 @@ REGLA DE ORO: Si el alimento cubre ~1/4 del plato, usa el extremo inferior del r
 - 0.5-0.6: Alimento difícil de identificar con certeza
 
 ## FORMATO DE RESPUESTA (SOLO JSON, SIN TEXTO):
-{
+{{
   "foods": [
-    {
+    {{
       "name": "nombre del alimento en español",
       "estimated_grams": número_entero,
       "preparation": "tipo de preparación",
       "confidence": 0.0 a 1.0
-    }
+    }}
   ],
   "meal_description": "descripción breve del plato"
-}
+}}
 
 ## EJEMPLO - Almuerzo peruano típico:
-{
+{{
   "foods": [
-    {"name": "arroz blanco", "estimated_grams": 180, "preparation": "cocido", "confidence": 0.95},
-    {"name": "pollo guisado", "estimated_grams": 140, "preparation": "guisado", "confidence": 0.85},
-    {"name": "papa amarilla", "estimated_grams": 120, "preparation": "sancochado", "confidence": 0.80},
-    {"name": "ensalada criolla", "estimated_grams": 60, "preparation": "crudo", "confidence": 0.75}
+    {{"name": "arroz blanco", "estimated_grams": 180, "preparation": "cocido", "confidence": 0.95}},
+    {{"name": "pollo guisado", "estimated_grams": 140, "preparation": "guisado", "confidence": 0.85}},
+    {{"name": "papa amarilla", "estimated_grams": 120, "preparation": "sancochado", "confidence": 0.80}},
+    {{"name": "ensalada criolla", "estimated_grams": 60, "preparation": "crudo", "confidence": 0.75}}
   ],
   "meal_description": "Almuerzo de arroz con pollo guisado, papa y ensalada"
-}
+}}
 
 IMPORTANTE: Sé CONSERVADOR y CONSISTENTE. Ante la duda, usa las porciones estándar listadas arriba.
 SOLO devuelve el JSON. Sin explicaciones ni texto adicional.
